@@ -1,0 +1,28 @@
+kind = "web"
+previewPath = "/"
+title = "Support Desk"
+description = "A support team workspace for submitting, triaging, investigating, and resolving customer issues. Includes a validated ticket form, filterable support queue, ticket detail workflows, and synthetic sample tickets."
+version = "1.0.0"
+id = "artifacts/support-desk"
+router = "path"
+
+[[services]]
+name = "web"
+paths = [ "/" ]
+localPort = 22289
+
+[services.development]
+run = "pnpm --filter @workspace/support-desk run dev"
+
+[services.production]
+build = [ "pnpm", "--filter", "@workspace/support-desk", "run", "build" ]
+serve = "static"
+publicDir = "artifacts/support-desk/dist/public"
+
+[[services.production.rewrites]]
+from = "/*"
+to = "/index.html"
+
+[services.env]
+PORT = "22289"
+BASE_PATH = "/"

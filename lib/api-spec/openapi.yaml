@@ -10,6 +10,8 @@ servers:
 tags:
   - name: health
     description: Health operations
+  - name: tickets
+    description: Support ticket operations
 paths:
   /healthz:
     get:
@@ -24,6 +26,165 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/HealthStatus"
+  /tickets:
+    get:
+      operationId: listTickets
+      tags: [tickets]
+      summary: List support tickets
+      parameters:
+        - in: query
+          name: status
+          schema:
+            $ref: "#/components/schemas/TicketStatus"
+        - in: query
+          name: severity
+          schema:
+            $ref: "#/components/schemas/TicketSeverity"
+        - in: query
+          name: productArea
+          schema:
+            type: string
+        - in: query
+          name: owner
+          schema:
+            type: string
+        - in: query
+          name: search
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Matching support tickets
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Ticket"
+    post:
+      operationId: createTicket
+      tags: [tickets]
+      summary: Submit a support ticket
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/TicketInput"
+      responses:
+        "201":
+          description: Ticket created
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Ticket"
+        "400":
+          description: Invalid ticket details
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiError"
+  /tickets/summary:
+    get:
+      operationId: getTicketSummary
+      tags: [tickets]
+      summary: Get support queue summary
+      responses:
+        "200":
+          description: Summary counts
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/TicketSummary"
+  /tickets/{ticketId}:
+    parameters:
+      - in: path
+        name: ticketId
+        required: true
+        schema:
+          type: integer
+    get:
+      operationId: getTicket
+      tags: [tickets]
+      summary: Get a ticket and its activity
+      responses:
+        "200":
+          description: Ticket details
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/TicketDetail"
+        "404":
+          description: Ticket not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiError"
+    patch:
+      operationId: updateTicket
+      tags: [tickets]
+      summary: Update ticket ownership, status, or resolution
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/TicketUpdate"
+      responses:
+        "200":
+          description: Updated ticket
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Ticket"
+        "400":
+          description: Invalid ticket update
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiError"
+        "404":
+          description: Ticket not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiError"
+  /tickets/{ticketId}/updates:
+    parameters:
+      - in: path
+        name: ticketId
+        required: true
+        schema:
+          type: integer
+    post:
+      operationId: createTicketUpdate
+      tags: [tickets]
+      summary: Add an investigation, troubleshooting, customer update, or resolution note
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/TicketUpdateInput"
+      responses:
+        "201":
+          description: Ticket activity added
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/TicketDetail"
+        "400":
+          description: Invalid ticket update
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiError"
+        "404":
+          description: Ticket not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiError"
 components:
   schemas:
     HealthStatus:
@@ -33,4 +194,211 @@ components:
           type: string
       required:
         - status
+    TicketStatus:
+      type: string
+      enum:
+        - New
+        - Investigating
+        - Waiting for Customer
+        - Escalated
+        - Resolved
+        - Closed
+    TicketSeverity:
+      type: string
+      enum:
+        - Critical
+        - High
+        - Medium
+        - Low
+    TicketUpdateKind:
+      type: string
+      enum:
+        - investigation
+        - troubleshooting
+        - customer_update
+        - resolution
+    Ticket:
+      type: object
+      required:
+        - id
+        - ticketNumber
+        - title
+        - productArea
+        - environment
+        - description
+        - expectedBehavior
+        - actualBehavior
+        - reproductionSteps
+        - customerImpact
+        - severity
+        - status
+        - owner
+        - errorMessage
+        - sanitizedLogs
+        - resolution
+        - createdAt
+        - updatedAt
+      properties:
+        id:
+          type: integer
+        ticketNumber:
+          type: string
+        title:
+          type: string
+        productArea:
+          type: string
+        environment:
+          type: string
+        description:
+          type: string
+        expectedBehavior:
+          type: string
+        actualBehavior:
+          type: string
+        reproductionSteps:
+          type: string
+        errorMessage:
+          type: ["string", "null"]
+        sanitizedLogs:
+          type: ["string", "null"]
+        customerImpact:
+          type: string
+        severity:
+          $ref: "#/components/schemas/TicketSeverity"
+        status:
+          $ref: "#/components/schemas/TicketStatus"
+        owner:
+          type: ["string", "null"]
+        resolution:
+          type: ["string", "null"]
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+    TicketActivity:
+      type: object
+      required: [id, ticketId, kind, body, author, createdAt]
+      properties:
+        id:
+          type: integer
+        ticketId:
+          type: integer
+        kind:
+          $ref: "#/components/schemas/TicketUpdateKind"
+        body:
+          type: string
+        author:
+          type: string
+        createdAt:
+          type: string
+          format: date-time
+    TicketDetail:
+      allOf:
+        - $ref: "#/components/schemas/Ticket"
+        - type: object
+          required: [activity]
+          properties:
+            activity:
+              type: array
+              items:
+                $ref: "#/components/schemas/TicketActivity"
+    TicketInput:
+      type: object
+      required:
+        - title
+        - productArea
+        - environment
+        - description
+        - expectedBehavior
+        - actualBehavior
+        - reproductionSteps
+        - customerImpact
+        - severity
+      properties:
+        title:
+          type: string
+          minLength: 4
+          maxLength: 180
+        productArea:
+          type: string
+          minLength: 1
+          maxLength: 80
+        environment:
+          type: string
+          minLength: 1
+          maxLength: 80
+        description:
+          type: string
+          minLength: 10
+          maxLength: 5000
+        expectedBehavior:
+          type: string
+          minLength: 3
+          maxLength: 2000
+        actualBehavior:
+          type: string
+          minLength: 3
+          maxLength: 2000
+        reproductionSteps:
+          type: string
+          minLength: 3
+          maxLength: 5000
+        errorMessage:
+          type: ["string", "null"]
+          maxLength: 2000
+        sanitizedLogs:
+          type: ["string", "null"]
+          maxLength: 10000
+        customerImpact:
+          type: string
+          minLength: 3
+          maxLength: 2000
+        severity:
+          $ref: "#/components/schemas/TicketSeverity"
+    TicketUpdate:
+      type: object
+      minProperties: 1
+      properties:
+        status:
+          $ref: "#/components/schemas/TicketStatus"
+        owner:
+          type: ["string", "null"]
+          maxLength: 120
+        resolution:
+          type: ["string", "null"]
+          maxLength: 5000
+    TicketUpdateInput:
+      type: object
+      required: [kind, body]
+      properties:
+        kind:
+          $ref: "#/components/schemas/TicketUpdateKind"
+        body:
+          type: string
+          minLength: 3
+          maxLength: 5000
+        author:
+          type: string
+          minLength: 1
+          maxLength: 120
+    TicketSummary:
+      type: object
+      required: [total, open, critical, resolved]
+      properties:
+        total:
+          type: integer
+        open:
+          type: integer
+        critical:
+          type: integer
+        resolved:
+          type: integer
+    ApiError:
+      type: object
+      required: [error]
+      properties:
+        error:
+          type: string
 
