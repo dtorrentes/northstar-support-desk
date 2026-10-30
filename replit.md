@@ -1,10 +1,12 @@
-# [Project name]
+# Northstar Support Desk
 
-_Replace the heading above with the project's name, and this line with one sentence describing what this app does for users._
+A support operations workspace for structured issue intake, ticket triage, investigation, ownership, and resolution using synthetic demonstration data.
+
+See [README.md](README.md) for the project overview, screenshots, supported setup, current limits, and [QA case study](docs/QA_CASE_STUDY.md).
 
 ## Run & Operate
 
-- `pnpm --filter @workspace/api-server run dev` — run the API server (port 5000)
+- `pnpm --filter @workspace/api-server run dev` — run the API server (uses the configured `PORT`)
 - `pnpm run typecheck` — full typecheck across all packages
 - `pnpm run build` — typecheck + build all packages
 - `pnpm --filter @workspace/api-spec run codegen` — regenerate API hooks and Zod schemas from the OpenAPI spec
@@ -18,28 +20,41 @@ _Replace the heading above with the project's name, and this line with one sente
 - DB: PostgreSQL + Drizzle ORM
 - Validation: Zod (`zod/v4`), `drizzle-zod`
 - API codegen: Orval (from OpenAPI spec)
-- Build: esbuild (CJS bundle)
+- Build: esbuild (ESM bundle)
 
 ## Where things live
 
-_Populate as you build — short repo map plus pointers to the source-of-truth file for DB schema, API contracts, theme files, etc._
+- `artifacts/support-desk/src/App.tsx` — queue, intake, and ticket-detail views
+- `artifacts/api-server/src/routes/tickets.ts` — ticket and activity routes
+- `artifacts/api-server/src/lib/demo-tickets.ts` — synthetic examples
+- `lib/db/src/schema/support-tickets.ts` — ticket and activity schema
+- `lib/api-spec/openapi.yaml` — API contract; regenerate clients after changes
 
 ## Architecture decisions
 
-_Populate as you build — non-obvious choices a reader couldn't infer from the code (3-5 bullets)._
+- Replit supplies shared-origin routing: `/api` reaches the API service and the web app uses relative URLs. The Vite config has no standalone API proxy.
+- An empty database is seeded with eight synthetic tickets on the first read; existing records are preserved.
+- Owner and author values are editable labels. Authentication and authorization remain future work.
 
 ## Product
 
-_Describe the high-level user-facing capabilities of this app once they exist._
+- Validated intake with environment, expected/actual behavior, reproduction steps, impact, and sanitized evidence
+- Search and combined severity, status, product-area, and owner filters
+- Ticket status/ownership management, typed activity notes, resolutions, and summary counts
 
 ## User preferences
 
-_Populate as you build — explicit user instructions worth remembering across sessions._
+- Keep demonstration content synthetic and evidence accurate.
+- Describe completed browser checks separately from planned automated tests.
 
 ## Gotchas
 
-_Populate as you build — sharp edges, "always run X before Y" rules._
+- The API requires `DATABASE_URL` and `PORT`; the web app requires its own `PORT` and `BASE_PATH`.
+- Configure distinct ports per service, with the shared-origin workspace router in front.
+- Schema push targets the configured development database; review the connection before running it.
+- A `resolution` activity entry also stores the resolution and sets the ticket status to Resolved.
+- No automated test framework or `test` script is currently configured.
 
 ## Pointers
 
-- See the `pnpm-workspace` skill for workspace structure, TypeScript setup, and package details
+- See `pnpm-workspace.yaml` for workspace packages, dependency versions, and platform overrides.
